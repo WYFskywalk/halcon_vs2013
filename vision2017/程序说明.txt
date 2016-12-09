@@ -1,0 +1,69 @@
+用到的DATAID编号：
+主机发送给主控：
+PauseShoot                     0x20                  暂停射击
+Shoot                          0x21                  射击
+
+BigSymbolShoot                 0x40                  射击大符
+SudokuRegionNotFind            0x41                  未能分割九宫格区域
+SudokuNumNotFind               0x42                  未能识别九宫格区域
+MatchedSudoku                  0x43                  九宫格双目数据传输就绪
+SingleSudoku                   0x44                  九宫格单目数据传输就绪
+SudokuPrepare                  0x45                  九宫格就绪
+
+PasswordRegionNotFind          0x50                  未找到密码区
+PasswordNumNotFind             0x51                  未能识别密码区
+PasswordPrepare                0x52                  密码区就绪
+PasswordOK                     0x53                  密码传输完毕
+
+MinPCCameraError               0xFC
+MinPCSerialPortTest            0xFD
+ShutDownCallBack               0xFE                  关机反馈
+
+主控发送给主机：
+ShutDown                       0xFF                  关机
+ShootEnemy                     0xF9                  射击模式
+BigSymbol                      0xF8                  大符模式
+RedDetect                      0xFA                  攻击红色装甲
+BlueDetect                     0xFB                  攻击蓝色装甲
+
+通信协议格式：帧长26位
+帧头：
+SendBuff[0] = 0x44
+SendBuff[1] = 0xBB
+ID标志位：
+SendBuff[2] = DataId
+数据帧：
+Data0 32位float数据：先发送低位后发送高位，占用SendBuff[3]--SendBuff[6]
+Data1 32位float数据：先发送低位后发送高位，占用SendBuff[7]--SendBuff[10]
+Data2 32位float数据：先发送低位后发送高位，占用SendBuff[11]--SendBuff[14]
+Data3 32位float数据：先发送低位后发送高位，占用SendBuff[15]--SendBuff[18]
+Data4 16位int数据：先发送低位后发送高位，占用SendBuff[19]--SendBuff[22]
+检验标志位：
+SendBuff[23]，求和检验，3至22位的和
+帧尾：
+SendBuff[24] = 0xFF
+SendBuff[25] = 0xFF
+
+ArmorDetect:装甲识别代码
+流程：链表更新——>灯条检测——>灯条匹配装甲——>单目测量——>装甲筛选——>左右相机目标匹配——>3D测距——>选择目标——>坐标变换——>发送数据
+需注意的参数：灰度图阈值化：光线，相机参数
+              膨胀系数：白光部分不要太大，红/蓝光部分可以比较大覆盖装甲中心白光部分
+			  拆分单色光部分差值图阈值化：准确圈定红/蓝光周围光环
+			  灯条形态筛选：方向角1.57+-0.27（介于75度到105度之间），椭圆形态（离心率，扁平程度），面积筛选
+			  误差计算：方向角误差，长度误差，高度误差设置合理阈值，加权比重需要试验
+			  装甲筛选：长宽比，面积
+			  左右相机目标匹配：圈定范围后取误差最小者
+双目测量，单目测量，坐标转换为固定套路，目标选择区分为上一时刻有无目标来选择执行
+
+BigMark:大符识别代码
+流程：初始化——>OCR阅读器初始化——>分割密码区域——>密码区识别——>密码区传输——>分割九宫格区域——>获取九宫格相对位置——>读取九宫格数字——>双目匹配/3D测距
+（此步骤可跳过）——>单目或双目九宫格数据传输——>关闭OCR
+需注意的参数：灰度图转换：一般采用3*3或者5*5内核
+              阈值化分割：要求准确切割出九宫格内的数字，周边不管
+			  均值（低通）滤波：推荐值5~40，需要是九宫格像素尺寸约2倍（以长边为准）
+			  高通滤波：配合均值滤波使用，基本圈定九宫格区域，推荐值1~30
+
+
+
+
+
